@@ -1,9 +1,11 @@
-let express = require('express');
-let app = express();
-let bodyParser = require('body-parser');
+const express = require('express');
+const app = express();
+const bodyParser = require('body-parser');
+const session = require('express-session');
 
-let fakeData = require('./fakedata.json')
-let fakeItemMap = require('./fakeItemMap.json')
+
+const fakeData = require('./fakedata.json')
+const fakeItemMap = require('./fakeItemMap.json')
 
 app.use(bodyParser.raw({ type: '*/*' }))
 
