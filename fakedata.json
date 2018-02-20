@@ -1,0 +1,5 @@
+{ 
+    "xyz789": { "title": "Shopping List", "items": ["Bread", "Milk", "Eggs"], "lat" : "45.7654", "long" : "-70.7653", "rad" : 50 },
+    "xyz678": { "title": "Buy Bus pass", "items": [], "lat" : "45.7654", "long" : "-70.7653", "rad" : 50 },
+    "asd123": { "title": "Home List", "items": ["put lunch in bag", "shovel snow", "put laptop adaptor in bag"], "lat" : "45.7654", "long" : "-70.7653", "rad" : 50 } 
+}
