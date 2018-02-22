@@ -1,0 +1,31 @@
+body {
+    margin: 0px;
+    color: white;
+    
+    font-family: 'Montserrat', sans-serif; 
+}
+.hero {
+    display: block;
+    min-width: 100%;
+    min-height: 80vh;
+    background-image: linear-gradient(rgba(255, 0, 0, 0.7), rgba(255, 0, 0, 0.3)),url("background.jpg");
+    background-size: cover;
+    background-repeat: no-repeat;
+    margin: 0px;
+    padding: 0px;
+}
+.header {
+    display: flex;
+    text-align: center;
+    justify-content: space-around;
+    margin: 0rem 3rem 3rem 3rem;
+    padding: 3rem;
+    font-size: 10em;
+}
+
+.desc {
+    background-color: #0A1215;
+    text-align: justify;
+    font-size: 1.5rem; 
+    padding: 4rem;    
+}

@@ -2,27 +2,40 @@ const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
 const session = require('express-session');
-const sd = require('./spotdude');
 const bcrypt = require('bcrypt');
+const sd = require('./spotdude'); //spotdude functions
+const homepage = './homepage/index.html'
 
 //// DB Connection type - local db or fake files
-// Use a local mongodb test database and the schema defined in database/mongo.js file
+// Use a local mongodb test database and the schema defined in database/model directory
 const mongoose = require('mongoose');
 const User = require('./database/model/User');
 const List = require('./database/model/List');
 mongoose.connect('mongodb://localhost/test');
 const db = mongoose.connection;
+const MongoStore = require('connect-mongo')(session); //for sessions, cookies
+
+//// Database connection
+// Open database connection, leave it open, never close it.
+db.on('error', console.error.bind(console, 'connection error:'));
+db.once('open', function () {
+    console.log("Database Connection open")
+});
 
 // The fake data is in the expected output format and can be used inplace of the database if needed. 
 const fakeData = require('./fakedata.json')
 const fakeItemMap = require('./fakeItemMap.json')
 
+// Should host a simple download page here to explain and "download the app". This needs to be called before the json and session
+// middlewear to avoid breaking it
+app.use(express.static('homepage'))
+
 //// Middlewear Section
 // required to read JSON
 app.use(bodyParser.raw({ type: '*/*' }))
 
-// middlewear for ensuring the data that we get is in a JSON format, if it's not you'll get a bad request.
-app.use((req, res, next) => {
+// JSON format check, middlewear for ensuring the data that we get is in a JSON format, if it's not you'll get a bad request. 
+app.post('*', (req, res, next) => {
     try {
         console.log(JSON.parse(req.body));
         next();
@@ -31,35 +44,44 @@ app.use((req, res, next) => {
         res.send("Bad request to " + req.originalUrl)
         next();
     }
+  })
+
+// will add session information to all visitors and keep them logged in if a session is present - change PW in prod :)
+app.use(session({
+    secret: "Jimmy for President",
+    name: "spotdude",
+    store: new MongoStore({ mongooseConnection: mongoose.connection }),
+    resave: true,
+    saveUninitialized: true
+}))
+
+// look up req.session.id, 
+app.use((req, res, next) => {
+    if(!req.session.userid) {
+        console.log("user not logged in")
+        next();
+    } else {
+        console.log("user is logged in")
+        next();
+    }
 })
 
-// // Test Area comment out anything you don't need
-// console.log(sd.locCheck(5,5,8,3,5))
-// console.log(sd.locCheck(5,5,9,9,5))
-// console.log(mongo.user, mongo.list)
-
-//// Database connection
-// Open database connection
-db.on('error', console.error.bind(console, 'connection error:'));
-db.once('open', function () {
-    console.log("Database Connection open")
-});
-
-// Should host a simple download page here to explain and "download the app". Currently broken by the JSON checking middlewear
-app.get('/', (req, res) => {
-    res.json({ message: "Get Spot buddy now!" });
-})
-
+//// End points ---------------------------------------------------------------------------------------------------------------
 //// User Management
 //login endpoint, will check if there is a username and password and if there is return success, if not failure.
 app.post('/login', (req, res) => {
     let request = JSON.parse(req.body)
-
     if (request.email && request.password) {
         User.find({ email : request.email }, function(err, user) {
             if (err) {
                 res.send({ "res" : false, "err" : err.errmsg });
+            } else if (user[0] === undefined) {
+                res.send(JSON.stringify({ "res": false, "err": "user does not exist" }))
             } else if (bcrypt.compareSync(request.password, user[0].password)){
+                if (user[0].sessionid != req.session.id) {
+                    console.log("need to update userdb")
+                }
+                user[0].sessionid = req.session.id
                 res.send(JSON.stringify({ sessionid: user[0].sessionid }))  
             } else {
                 res.send(JSON.stringify({ "res": false })) 
@@ -78,14 +100,13 @@ app.post('/login', (req, res) => {
 
 app.post('/signup', (req, res) => {
     let request = JSON.parse(req.body)
-    //double check if the request has an email and password and if so create a new user with hashed password
+    //double check if the request has an email and password and if so create a new user with hashed password and add sessionid to user
     if (request.email && request.password) {
         let user = new User({
-            id: 22,
             email: request.email,
             password: bcrypt.hashSync(request.password, 12),
-            sessionid: "123456",
-            lists: ["one", "two"]
+            sessionid: req.session.id,
+            lists: []
         });
         // This wil save the user to the database and return true if successful, otherwise it will return false with error code
         user.save(function (err) {
@@ -116,19 +137,69 @@ app.post('/locCheck', (req, res) => {
 });
 
 //// Create, Read, Update and Delete user lists (CRUD).
+// listReadAll will send the users lists with the title and number of items in each list. 
 
 app.post('/listReadAll', (req, res) => {
-    let request = JSON.parse(req.body);
-    request.sessionid ?
-        res.send(fakeItemMap) :
-        res.send({ "res": false })
+    
+    List.find({userid : req.session.userid}, 'title items', {lean: true}, function(err, list) {
+        if (err) {
+            res.send({ "res" : false, "err" : err.errmsg });
+        } else if (list[0] === undefined) {
+            res.send(JSON.stringify({ "res": false, "err": "no lists" }))
+        } else {
+            // Right now I get the whole list and then process it to get the number of items instead of
+            // the full list, there is an aggregate api that should make this cleaner, but I haven't 
+            // figured it out yet and this works regardless.
+            console.log(list)
+            let response = list.map(obj => {
+                let rObj = {};
+                rObj.listid = obj._id;
+                rObj.title = obj.title;
+                rObj.items = obj.items.length;
+                return rObj;
+            })
+            res.send(response);
+        }
+    })
+    
+    
+    // console.log(req.session.userid)
+    // let request = JSON.parse(req.body);
+    // req.session.userid ?
+    //     res.send(fakeItemMap) :
+    //     res.send({ "res": false })
 })
 
 app.post('/listCreate', (req, res) => {
     let request = JSON.parse(req.body);
-    request.sessionid && request.title && request.list && request.lat && request.long && request.rad ?
-        res.send({ "listid": "xyz345" }) :
-        res.send({ "res": false })
+
+    //double check if the request has necessary list requirements - checking req.session.email is insecure as it could be faked.
+    if(req.session.userid) {
+        if ( request.title && request.list && request.lat && request.long && request.rad) {
+            let list = new List({
+                userid: req.session.userid,
+                title: request.title,
+                lat: request.lat,
+                long: request.long,
+                rad: request.rad,
+                items: request.list
+            });
+            // This wil save the list to the database and return true if successful, otherwise it will return false with error code
+            list.save(function (err) {
+                if (err) {
+                    console.log("List creation failed")
+                    res.send(JSON.stringify({ "res": false, "error": err.errmsg }))
+                } else {
+                    console.log("list saved ", list)
+                    res.send(JSON.stringify({ "res": true }))
+                }
+            })
+        } else {
+            res.send({"res": false, "err": "missing object items"})
+        }
+    } else {
+        res.send({"res": false, "err": "not logged in"})
+    }
 })
 
 // return the list details of the given listid

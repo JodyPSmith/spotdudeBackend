@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const List = new Schema({
-    id: Number,
+    userid: String,
     title: String,
     lat: Number,
     long: Number,

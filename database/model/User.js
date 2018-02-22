@@ -2,10 +2,9 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const User = new Schema({
-    id: Number,
     email: String,
     password: String,
-    sessionid: Number,
+    sessionid: String,
     lists: Array
 })
 

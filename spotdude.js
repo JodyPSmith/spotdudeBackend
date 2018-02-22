@@ -17,6 +17,11 @@ locCheck = (clat, clong, plat, plong, rad) => {
     }
 }
 
+login = (email, password) => {
+    console.log ("need to bring login check here")
+}
+
 module.exports = {
     locCheck,
+    login
 }
