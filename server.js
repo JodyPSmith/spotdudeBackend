@@ -31,10 +31,8 @@ const fakeItemMap = require('./fakeItemMap.json')
 app.use(express.static('homepage'))
 
 //// Middlewear Section
-// required to read JSON
+// required to read JSON & middlewear for ensuring the data that we get is in a JSON format, if it's not you'll get a bad request.
 app.use(bodyParser.raw({ type: '*/*' }))
-
-// JSON format check, middlewear for ensuring the data that we get is in a JSON format, if it's not you'll get a bad request. 
 app.post('*', (req, res, next) => {
     try {
         console.log(JSON.parse(req.body));
@@ -44,7 +42,7 @@ app.post('*', (req, res, next) => {
         res.send("Bad request to " + req.originalUrl)
         next();
     }
-  })
+})
 
 // will add session information to all visitors and keep them logged in if a session is present - change PW in prod :)
 app.use(session({
@@ -55,9 +53,9 @@ app.use(session({
     saveUninitialized: true
 }))
 
-// look up req.session.id, 
+// look up req.session.id, not sure i need this since it happens on all connections anyway?
 app.use((req, res, next) => {
-    if(!req.session.userid) {
+    if (!req.session.userid) {
         console.log("user not logged in")
         next();
     } else {
@@ -72,19 +70,19 @@ app.use((req, res, next) => {
 app.post('/login', (req, res) => {
     let request = JSON.parse(req.body)
     if (request.email && request.password) {
-        User.find({ email : request.email }, function(err, user) {
+        User.find({ email: request.email }, function (err, user) {
             if (err) {
-                res.send({ "res" : false, "err" : err.errmsg });
+                res.send({ "res": false, "err": err.errmsg });
             } else if (user[0] === undefined) {
                 res.send(JSON.stringify({ "res": false, "err": "user does not exist" }))
-            } else if (bcrypt.compareSync(request.password, user[0].password)){
+            } else if (bcrypt.compareSync(request.password, user[0].password)) {
                 if (user[0].sessionid != req.session.id) {
                     console.log("need to update userdb")
                 }
                 user[0].sessionid = req.session.id
-                res.send(JSON.stringify({ sessionid: user[0].sessionid }))  
+                res.send(JSON.stringify({ sessionid: user[0].sessionid }))
             } else {
-                res.send(JSON.stringify({ "res": false })) 
+                res.send(JSON.stringify({ "res": false }))
             }
         });
     } else if (!request.email && !request.password) {
@@ -140,10 +138,10 @@ app.post('/locCheck', (req, res) => {
 // listReadAll will send the users lists with the title and number of items in each list. 
 
 app.post('/listReadAll', (req, res) => {
-    
-    List.find({userid : req.session.userid}, 'title items', {lean: true}, function(err, list) {
+
+    List.find({ userid: req.session.userid }, 'title items', { lean: true }, function (err, list) {
         if (err) {
-            res.send({ "res" : false, "err" : err.errmsg });
+            res.send({ "res": false, "err": err.errmsg });
         } else if (list[0] === undefined) {
             res.send(JSON.stringify({ "res": false, "err": "no lists" }))
         } else {
@@ -161,8 +159,8 @@ app.post('/listReadAll', (req, res) => {
             res.send(response);
         }
     })
-    
-    
+
+
     // console.log(req.session.userid)
     // let request = JSON.parse(req.body);
     // req.session.userid ?
@@ -174,8 +172,8 @@ app.post('/listCreate', (req, res) => {
     let request = JSON.parse(req.body);
 
     //double check if the request has necessary list requirements - checking req.session.email is insecure as it could be faked.
-    if(req.session.userid) {
-        if ( request.title && request.list && request.lat && request.long && request.rad) {
+    if (req.session.userid) {
+        if (request.title && request.list && request.lat && request.long && request.rad) {
             let list = new List({
                 userid: req.session.userid,
                 title: request.title,
@@ -195,27 +193,35 @@ app.post('/listCreate', (req, res) => {
                 }
             })
         } else {
-            res.send({"res": false, "err": "missing object items"})
+            res.send({ "res": false, "err": "missing object items" })
         }
     } else {
-        res.send({"res": false, "err": "not logged in"})
+        res.send({ "res": false, "err": "not logged in" })
     }
 })
 
 // return the list details of the given listid
 app.post('/listRead', (req, res) => {
     let request = JSON.parse(req.body);
-    request.sessionid && request.listid ?
-        res.send(fakeData[request.listid]) :
-        res.send({ "res": false })
-})
+    // request.sessionid && request.listid ?
+    //     res.send(fakeData[request.listid]) :
+    //     res.send({ "res": false })
+    if (req.session.userid) {
+        List.find({ _id: request.listid }, function (err, list) {
+            if (err) {
+                res.send({ "res": false, "err": err.errmsg });
+            } else if (list[0].userid === req.session.userid) {
+                res.send(list);
+            } else {
+                res.send(JSON.stringify({ "res": false, "err": "list not found or not your list" }))
+            }
+        })
+    }
+});
 
 //this should eb a delete and not a POST!!
-app.post('/listDelete', (req, res) => {
+app.delete('/listDelete', (req, res) => {
     let request = JSON.parse(req.body);
-    request.sessionid && request.listid ?
-        res.send({ "listid": request.listid }) :
-        res.send({ "res": false })
 
 })
 
