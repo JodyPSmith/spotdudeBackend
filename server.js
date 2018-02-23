@@ -4,7 +4,7 @@ const bodyParser = require('body-parser');
 const session = require('express-session'); //session management
 const bcrypt = require('bcrypt'); //password encryption
 const distance = require('geo-dist-calc'); // used to deal with distance between two points on earth
-//const sd = require('./spotdude'); //spotdude functions
+const helmet = require('helmet');
 const homepage = './homepage/index.html'
 
 //// DB Connection type - local db or fake files
@@ -23,9 +23,9 @@ db.once('open', function () {
     console.log("Database Connection open")
 });
 
-// The fake data is in the expected output format and can be used inplace of the database if needed. 
-// const fakeData = require('./fakedata.json')
-// const fakeItemMap = require('./fakeItemMap.json')
+
+// Protect against common exploits
+app.use(helmet());
 
 // Should host a simple download page here to explain and "download the app". This needs to be called before the json and session
 // middlewear to avoid breaking it
@@ -78,10 +78,15 @@ app.post('/login', (req, res) => {
                 res.send(JSON.stringify({ "res": false, "err": "user does not exist" }))
             } else if (bcrypt.compareSync(request.password, user[0].password)) {
                 if (user[0].sessionid != req.session.id) {
-                    console.log("need to update userdb")
+                    User.update( { email : request.email }, {sessionid : req.session.id}, function (err, raw) {
+                        if (err) return handleError(err);
+                        console.log('The raw response from Mongo was ', raw);
+                      });
                 }
                 user[0].sessionid = req.session.id
                 res.send(JSON.stringify({ sessionid: user[0].sessionid }))
+            } else if (!bcrypt.compareSync(request.password, user[0].password)) {
+                res.send(JSON.stringify({ "res": false, "err" : "Password incorrect" }));
             } else {
                 res.send(JSON.stringify({ "res": false }))
             }
