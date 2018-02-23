@@ -7,7 +7,8 @@ const List = new Schema({
     lat: Number,
     long: Number,
     rad: Number,
-    items: Array
+    items: Array,
+    read: Boolean
 })
 
 module.exports = mongoose.model('List', List)
