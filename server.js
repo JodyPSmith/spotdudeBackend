@@ -78,15 +78,20 @@ app.post('/login', (req, res) => {
                 res.send(JSON.stringify({ "res": false, "err": "user does not exist" }))
             } else if (bcrypt.compareSync(request.password, user[0].password)) {
                 if (user[0].sessionid != req.session.id) {
-                    User.update( { email : request.email }, {sessionid : req.session.id}, function (err, raw) {
+                    User.update({ email: request.email }, { sessionid: req.session.id }, function (err, raw) {
                         if (err) return handleError(err);
                         console.log('The raw response from Mongo was ', raw);
-                      });
+                    });
                 }
+                // sync up the session id's if they've changed
                 user[0].sessionid = req.session.id
+                // add the userid to the session to keep the user logged in. **IMPORTANT** nothing will work without the userid.
+                req.session.userid = user[0]._id;
+                req.session.save();
+                //console.log(user[0].sessionid, req.session.id)
                 res.send(JSON.stringify({ sessionid: user[0].sessionid }))
             } else if (!bcrypt.compareSync(request.password, user[0].password)) {
-                res.send(JSON.stringify({ "res": false, "err" : "Password incorrect" }));
+                res.send(JSON.stringify({ "res": false, "err": "Password incorrect" }));
             } else {
                 res.send(JSON.stringify({ "res": false }))
             }
@@ -126,8 +131,11 @@ app.post('/signup', (req, res) => {
 })
 
 app.post('/logout', (req, res) => {
-    let request = JSON.parse(req.body)
-    request.sessionid ?
+    let request = JSON.parse(req.body);
+    //set the session userid to empty which prevents access to anything
+    req.session.userid = "";
+    req.session.save();
+    req.session.userid === "" ?
         res.send({ "res": true }) :
         res.send({ "res": false });
 })
