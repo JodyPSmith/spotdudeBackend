@@ -142,7 +142,7 @@ app.post('/locCheck', (req, res) => {
         if (err) {
             res.send({ "res": false, "err": err.errmsg });
         } else if (req.session.userid) {
-            
+            // only return the items that are within the distance/radius specified for the list
             let response = list.filter(obj => {
                 let listloc = { latitude: obj.lat, longitude: obj.long }
                 let nearby = distance.discal(listloc, userloc)
@@ -203,7 +203,8 @@ app.post('/listCreate', (req, res) => {
                 lat: request.lat,
                 long: request.long,
                 rad: request.rad,
-                items: request.list
+                items: request.list,
+                read: false
             });
             // This wil save the list to the database and return true if successful, otherwise it will return false with error code
             list.save(function (err) {
