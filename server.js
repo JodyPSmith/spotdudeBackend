@@ -1,9 +1,10 @@
 const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
-const session = require('express-session');
-const bcrypt = require('bcrypt');
-const sd = require('./spotdude'); //spotdude functions
+const session = require('express-session'); //session management
+const bcrypt = require('bcrypt'); //password encryption
+const distance = require('geo-dist-calc'); // used to deal with distance between two points on earth
+//const sd = require('./spotdude'); //spotdude functions
 const homepage = './homepage/index.html'
 
 //// DB Connection type - local db or fake files
@@ -11,7 +12,7 @@ const homepage = './homepage/index.html'
 const mongoose = require('mongoose');
 const User = require('./database/model/User');
 const List = require('./database/model/List');
-mongoose.connect('mongodb://localhost/test');
+mongoose.connect('mongodb://localhost/spotdude');
 const db = mongoose.connection;
 const MongoStore = require('connect-mongo')(session); //for sessions, cookies
 
@@ -23,8 +24,8 @@ db.once('open', function () {
 });
 
 // The fake data is in the expected output format and can be used inplace of the database if needed. 
-const fakeData = require('./fakedata.json')
-const fakeItemMap = require('./fakeItemMap.json')
+// const fakeData = require('./fakedata.json')
+// const fakeItemMap = require('./fakeItemMap.json')
 
 // Should host a simple download page here to explain and "download the app". This needs to be called before the json and session
 // middlewear to avoid breaking it
@@ -129,9 +130,26 @@ app.post('/logout', (req, res) => {
 //// Location check to verify if users location is associated to any of their lists.
 app.post('/locCheck', (req, res) => {
     let request = JSON.parse(req.body);
-    request.sessionid && request.lat && request.long ?
-        res.send(JSON.stringify(fakeData)) :
-        res.send(JSON.stringify({ "res": false }))
+
+    let userloc = { latitude: request.lat, longitude: request.long };
+
+    List.find({ userid: req.session.userid }, 'lat long rad', { lean: true }, function (err, list) {
+        if (err) {
+            res.send({ "res": false, "err": err.errmsg });
+        } else if (req.session.userid) {
+            
+            let response = list.filter(obj => {
+                let listloc = { latitude: obj.lat, longitude: obj.long }
+                let nearby = distance.discal(listloc, userloc)
+                return obj.rad > nearby.kilometers * 1000
+            })
+            console.log("This is the locCheck response to ", req.session.userid, " ", response)
+            res.send(response);
+        } else {
+            res.send(JSON.stringify({ "res": false, "err": "list not found or not your list" }))
+        }
+    })
+
 });
 
 //// Create, Read, Update and Delete user lists (CRUD).
@@ -148,7 +166,6 @@ app.post('/listReadAll', (req, res) => {
             // Right now I get the whole list and then process it to get the number of items instead of
             // the full list, there is an aggregate api that should make this cleaner, but I haven't 
             // figured it out yet and this works regardless.
-            console.log(list)
             let response = list.map(obj => {
                 let rObj = {};
                 rObj.listid = obj._id;
@@ -156,6 +173,7 @@ app.post('/listReadAll', (req, res) => {
                 rObj.items = obj.items.length;
                 return rObj;
             })
+            console.log("This is the listReadAll response to ", req.session.userid, " ", response)
             res.send(response);
         }
     })
@@ -203,9 +221,7 @@ app.post('/listCreate', (req, res) => {
 // return the list details of the given listid
 app.post('/listRead', (req, res) => {
     let request = JSON.parse(req.body);
-    // request.sessionid && request.listid ?
-    //     res.send(fakeData[request.listid]) :
-    //     res.send({ "res": false })
+
     if (req.session.userid) {
         List.find({ _id: request.listid }, function (err, list) {
             if (err) {
@@ -219,10 +235,20 @@ app.post('/listRead', (req, res) => {
     }
 });
 
-//this should eb a delete and not a POST!!
+//this will delete the specified list - the is signed in user check doesn't work right now so anyone can delete anyone elses user they have the id for :(
 app.delete('/listDelete', (req, res) => {
     let request = JSON.parse(req.body);
-
+    if (req.session.userid) {
+        List.remove({ _id: request.listid }, function (err, list) {
+            if (err) {
+                res.send({ "res": false, "err": err.errmsg });
+            } else if (req.session.userid) {
+                res.send({ "res": "success" });
+            } else {
+                res.send(JSON.stringify({ "res": false, "err": "list not found or not your list" }))
+            }
+        })
+    }
 })
 
 // app.post('/listUpdate', (req, res) => {
