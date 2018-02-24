@@ -57,7 +57,7 @@ app.use(session({
 // look up req.session.id, not sure i need this since it happens on all connections anyway?
 app.use((req, res, next) => {
     if (!req.session.userid) {
-        console.log("user not logged in")
+        console.log("user is logged out")
         next();
     } else {
         console.log("user is logged in")
@@ -89,6 +89,7 @@ app.post('/login', (req, res) => {
                 req.session.userid = user[0]._id;
                 req.session.save();
                 //console.log(user[0].sessionid, req.session.id)
+                console.log("user is logged in")
                 res.send(JSON.stringify({ sessionid: user[0].sessionid }))
             } else if (!bcrypt.compareSync(request.password, user[0].password)) {
                 res.send(JSON.stringify({ "res": false, "err": "Password incorrect" }));
@@ -135,6 +136,7 @@ app.post('/logout', (req, res) => {
     //set the session userid to empty which prevents access to anything
     req.session.userid = "";
     req.session.save();
+    console.log("user is logged out")
     req.session.userid === "" ?
         res.send({ "res": true }) :
         res.send({ "res": false });
@@ -249,21 +251,25 @@ app.post('/listRead', (req, res) => {
     }
 });
 
-//this will delete the specified list - the is signed in user check doesn't work right now so anyone can delete anyone elses user they have the id for :(
+//this will delete the specified list - the lists owner will be checked before allowing to delete
 app.delete('/listDelete', (req, res) => {
     let request = JSON.parse(req.body);
-    if (req.session.userid) {
-        List.remove({ _id: request.listid }, function (err, list) {
-            if (err) {
-                res.send({ "res": false, "err": err.errmsg });
-            } else if (req.session.userid) {
-                res.send({ "res": "success" });
-            } else {
-                res.send(JSON.stringify({ "res": false, "err": "list not found or not your list" }))
-            }
-        })
-    }
-})
+    List.find({ _id: request.listid }, function (err, list) {
+        if (list.userid === req.session.userid) {
+            List.remove({ _id: request.listid }, function (err, list) {
+                if (err) {
+                    res.send({ "res": false, "err": err.errmsg });
+                } else if (req.session.userid) {
+                    res.send({ "res": "success" });
+                } else {
+                    res.send(JSON.stringify({ "res": false, "err": "list not found or not your list" }))
+                }
+            })
+        } else {
+            res.send(JSON.stringify({ "res": false, "err": "not authorized" }))
+        }
+    })
+});
 
 // app.post('/listUpdate', (req, res) => {
 
