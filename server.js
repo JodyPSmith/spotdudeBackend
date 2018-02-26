@@ -16,6 +16,24 @@ mongoose.connect('mongodb://localhost/spotdude');
 const db = mongoose.connection;
 const MongoStore = require('connect-mongo')(session); //for sessions, cookies
 
+//// Handle SSL connection and specify cert location
+const fs = require('fs');
+const https = require('https');
+//const forceSsl = require('express-force-ssl');
+try {
+const key = fs.readFileSync('/etc/letsencrypt/live/jodysmith.ca/privkey.pem');
+const cert = fs.readFileSync( '/etc/letsencrypt/live/jodysmith.ca/fullchain.pem' );
+const ca = fs.readFileSync( '/etc/letsencrypt/live/jodysmith.ca/chain.pem' );
+
+const options = {
+ key: key,
+ cert: cert,
+ ca: ca
+};
+} catch (err) {
+    console.log("ssl keys not found");
+}
+
 // //// Database connection
 // // Open database connection, leave it open, never close it.
 db.on('error', console.error.bind(console, 'connection error:'));
@@ -266,7 +284,7 @@ app.delete('/listDelete', (req, res) => {
 });
 
 // list update allows the key and the value to be updated.
-app.post('/listUpdate', (req, res) => {
+app.put('/listUpdate', (req, res) => {
     let request = JSON.parse(req.body);
     console.log("request is", request)
     List.find({ _id: request.listid }, function (err, list) {
@@ -292,6 +310,8 @@ app.listen(5000, () => {
     console.log("listening at http://localhost:5000")
 })
 
-app.listen(443, () => {
-    console.log("https on https:/localhost")
-})
+try {
+    https.createServer(options, app).listen(443);
+} catch (err) {
+    console.log("no ssl keys specified")
+}
