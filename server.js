@@ -65,7 +65,7 @@ app.post('*', (req, res, next) => {
 
 // will add session information to all visitors and keep them logged in if a session is present - change PW in prod :)
 app.use(session({
-    secret: "Jimmy for President",
+    secret: process.env.MY_SESSION_SECRET || "Jimmy for President",
     name: "spotdude",
     store: new MongoStore({ mongooseConnection: mongoose.connection }),
     resave: true,
@@ -305,7 +305,6 @@ app.put('/listUpdate', (req, res) => {
     })
 })
 
-
 app.listen(5000, () => {
     console.log("listening at http://localhost:5000")
 })
@@ -315,3 +314,6 @@ try {
 } catch (err) {
     console.log("no ssl keys specified")
 }
+
+// This closes the db connection on reboot or ctrlc 
+process.on('SIGINT', function() { mongoose.connection.close(function () { console.log('Mongoose disconnected on app termination'); process.exit(0); }); });
