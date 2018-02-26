@@ -89,15 +89,16 @@ app.use((req, res, next) => {
 app.post('/login', (req, res) => {
     let request = JSON.parse(req.body)
     if (request.email && request.password) {
-        User.find({ email: request.email }, function (err, user) {
+        User.find({ email: request.email.toLowerCase() }, function (err, user) {
             if (err) {
                 res.send({ "res": false, "err": err.errmsg });
             } else if (user[0] === undefined) {
                 res.send(JSON.stringify({ "res": false, "err": "user does not exist" }))
             } else if (bcrypt.compareSync(request.password, user[0].password)) {
                 if (user[0].sessionid != req.session.id) {
-                    User.update({ email: request.email }, { sessionid: req.session.id }, function (err, raw) {
+                    User.update({ email: request.email.toLowerCase() }, { sessionid: req.session.id }, function (err, raw) {
                         if (err) return handleError(err);
+                        console.log(request.email.toLowerCase())
                         console.log('The raw response from Mongo was ', raw);
                     });
                 }
@@ -131,7 +132,7 @@ app.post('/signup', (req, res) => {
     //double check if the request has an email and password and if so create a new user with hashed password and add sessionid to user
     if (request.email && request.password) {
         let user = new User({
-            email: request.email,
+            email: request.email.toLowerCase(),
             password: bcrypt.hashSync(request.password, 12),
             sessionid: req.session.id,
             lists: []
