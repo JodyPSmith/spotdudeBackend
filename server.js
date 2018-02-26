@@ -5,7 +5,6 @@ const session = require('express-session'); //session management
 const bcrypt = require('bcrypt'); //password encryption
 const distance = require('geo-dist-calc'); // used to deal with distance between two points on earth
 const helmet = require('helmet');
-const sd = require('./spotdude')
 const homepage = './homepage/index.html'
 
 //// DB Connection type - local db or fake files
