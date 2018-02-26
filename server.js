@@ -5,6 +5,7 @@ const session = require('express-session'); //session management
 const bcrypt = require('bcrypt'); //password encryption
 const distance = require('geo-dist-calc'); // used to deal with distance between two points on earth
 const helmet = require('helmet');
+const sd = require('./spotdude')
 const homepage = './homepage/index.html'
 
 //// DB Connection type - local db or fake files
@@ -16,8 +17,8 @@ mongoose.connect('mongodb://localhost/spotdude');
 const db = mongoose.connection;
 const MongoStore = require('connect-mongo')(session); //for sessions, cookies
 
-//// Database connection
-// Open database connection, leave it open, never close it.
+// //// Database connection
+// // Open database connection, leave it open, never close it.
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', function () {
     console.log("Database Connection open")
@@ -36,7 +37,7 @@ app.use(express.static('homepage'))
 app.use(bodyParser.raw({ type: '*/*' }))
 app.post('*', (req, res, next) => {
     try {
-        console.log(JSON.parse(req.body));
+        console.log("recieved from client: ", JSON.parse(req.body));
         next();
     } catch (err) {
         console.log("Bad request to " + req.originalUrl)
@@ -171,34 +172,26 @@ app.post('/locCheck', (req, res) => {
 // listReadAll will send the users lists with the title and number of items in each list. 
 
 app.post('/listReadAll', (req, res) => {
-
-    List.find({ userid: req.session.userid }, 'title items', { lean: true }, function (err, list) {
+    List.find({ userid: req.session.userid }, 'title', { lean: true }, function (err, list) {
         if (err) {
             res.send({ "res": false, "err": err.errmsg });
         } else if (list[0] === undefined) {
             res.send(JSON.stringify({ "res": false, "err": "no lists" }))
         } else {
-            // Right now I get the whole list and then process it to get the number of items instead of
-            // the full list, there is an aggregate api that should make this cleaner, but I haven't 
-            // figured it out yet and this works regardless.
-            let response = list.map(obj => {
-                let rObj = {};
-                rObj.listid = obj._id;
-                rObj.title = obj.title;
-                rObj.items = obj.items.length;
-                return rObj;
-            })
-            console.log("This is the listReadAll response to ", req.session.userid, " ", response)
-            res.send(response);
+
+            //// removed item numbers and changed send back to array as per Jimmy. Need to add items to the list call above to reinstate.
+            // let response = list.map(obj => {
+            //     let rObj = {};
+            //     rObj.listid = obj._id;
+            //     rObj.title = obj.title;
+            //     rObj.items = obj.items.length;    
+            // })
+
+            console.log("This is the listReadAll response to ", req.session.userid, " ", list)
+            res.send(list);
+            return list;
         }
     })
-
-
-    // console.log(req.session.userid)
-    // let request = JSON.parse(req.body);
-    // req.session.userid ?
-    //     res.send(fakeItemMap) :
-    //     res.send({ "res": false })
 })
 
 app.post('/listCreate', (req, res) => {
@@ -248,6 +241,8 @@ app.post('/listRead', (req, res) => {
                 res.send(JSON.stringify({ "res": false, "err": "list not found or not your list" }))
             }
         })
+    } else {
+        res.send(JSON.stringify({ "res": false, "err": "userid not found" }))
     }
 });
 
@@ -271,11 +266,33 @@ app.delete('/listDelete', (req, res) => {
     })
 });
 
-// app.post('/listUpdate', (req, res) => {
-
-// })
+// list update allows the key and the value to be updated.
+app.post('/listUpdate', (req, res) => {
+    let request = JSON.parse(req.body);
+    console.log("request is", request)
+    List.find({ _id: request.listid }, function (err, list) {
+        console.log(list)
+        console.log(request.reqKey, request.reqValue, list[0].userid, req.session.userid)
+        if (request.reqKey && request.reqValue && list[0].userid === req.session.userid) {
+            List.update({ _id: request.listid }, update = { [request.reqKey]: request.reqValue }, options = { multi: true }, function (err) {
+                if (err) {
+                    res.send({ "res": false, "err": err });
+                } else {
+                    let update = "updated: " + request.reqKey + " to " + request.reqValue
+                    res.send({ "res": true, "updated" : update })
+                }
+            })
+        } else {
+            res.send({ "res": false, "err": "not Authorized" })
+        }
+    })
+})
 
 
 app.listen(5000, () => {
     console.log("listening at http://localhost:5000")
+})
+
+app.listen(443, () => {
+    console.log("https on https:/localhost")
 })
