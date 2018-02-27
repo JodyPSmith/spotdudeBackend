@@ -179,22 +179,22 @@ app.post('/logout', (req, res) => {
         res.send({ "res": true }) :
         res.send({ "res": false });
 
-        let request = JSON.parse(req.body);
-        List.find({ _id: request.listid }, function (err, list) {
-            if (list.userid === req.session.userid) {
-                List.remove({ _id: request.listid }, function (err, list) {
-                    if (err) {
-                        res.send({ "res": false, "err": err.errmsg });
-                    } else if (req.session.userid) {
-                        res.send({ "res": "success" });
-                    } else {
-                        res.send(JSON.stringify({ "res": false, "err": "list not found or not your list" }))
-                    }
-                })
-            } else {
-                res.send(JSON.stringify({ "res": false, "err": "not authorized" }))
-            }
-        })
+        // let request = JSON.parse(req.body);
+        // List.find({ _id: request.listid }, function (err, list) {
+        //     if (list.userid === req.session.userid) {
+        //         List.remove({ _id: request.listid }, function (err, list) {
+        //             if (err) {
+        //                 res.send({ "res": false, "err": err.errmsg });
+        //             } else if (req.session.userid) {
+        //                 res.send({ "res": "success" });
+        //             } else {
+        //                 res.send(JSON.stringify({ "res": false, "err": "list not found or not your list" }))
+        //             }
+        //         })
+        //     } else {
+        //         res.send(JSON.stringify({ "res": false, "err": "not authorized" }))
+        //     }
+        // })
 })
 
 
