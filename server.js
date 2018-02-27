@@ -93,7 +93,7 @@ app.get('/checkSession', (req, res) => {
     console.log(req.session.id)
     User.find({ sessionid: req.session.id }, function (err, user) {
         if (err) {
-            res.send({ res: false, "err": err.errmsg });
+            res.send({ res: false });
         } else if (!user[0]) {
             res.send({ res: false });
         } else if (user[0].sessionid === req.session.id) {
