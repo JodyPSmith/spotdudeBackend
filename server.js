@@ -171,17 +171,14 @@ app.post('/signup', (req, res) => {
 
 app.post('/logout', (req, res) => {
     let request = JSON.parse(req.body);
-    req.session.destroy(req.session.id, function (err) {
-        if (err) {
-            console.log(err)
-            res.send({ res: false, "err": err })
-        } else {
-            console.log("user session destroyed")
-            res.send({ "res": true });
-        }
-    });
-
-
+    //set the session userid to empty which prevents access to anything
+    req.session.userid = "";
+    req.session.save();
+    console.log("user is logged out")
+    req.session.userid === "" ?
+        res.send({ "res": true }) :
+        res.send({ "res": false });
+    req.session.destroy();
 })
 
 
