@@ -186,7 +186,7 @@ app.post('/locCheck', (req, res) => {
     if (request.lat && request.long) {
         let userloc = { latitude: request.lat, longitude: request.long };
 
-        List.find({ userid: req.session.userid }, 'lat long rad', { lean: true }, function (err, list) {
+        List.find({ userid: req.session.userid }, { lean: true }, function (err, list) {
             if (err) {
                 res.send({ "res": false, "err": err.errmsg });
             } else if (req.session.userid) {
