@@ -53,6 +53,7 @@ app.use(express.static('homepage'))
 // required to read JSON & middlewear for ensuring the data that we get is in a JSON format, if it's not you'll get a bad request.
 app.use(bodyParser.raw({ type: '*/*' }))
 app.post('*', (req, res, next) => {
+    if (req.body) {
     try {
         console.log("recieved from client: ", JSON.parse(req.body));
         next();
@@ -61,7 +62,10 @@ app.post('*', (req, res, next) => {
         res.send("Bad request to " + req.originalUrl)
         next();
     }
+}
 })
+
+
 
 // will add session information to all visitors and keep them logged in if a session is present - change PW in prod :)
 app.use(session({
@@ -86,6 +90,23 @@ app.use((req, res, next) => {
 //// End points ---------------------------------------------------------------------------------------------------------------
 //// User Management
 //login endpoint, will check if there is a username and password and if there is return success, if not failure.
+app.get('/checkSession', (req, res) => {
+    
+    console.log(req.session.id)
+    User.find({ sessionid : req.session.id}, function (err, user) {      
+        if (err) {
+            res.send({ res: false, "err": err.errmsg });
+        } else if (!user[0]) {
+            res.send({ res: false});
+        } else if (user[0].sessionid === req.session.id){
+            console.log(user)
+            res.send({ res : true});
+        } else {
+            res.send({ res: false});
+        }
+    })
+})
+
 app.post('/login', (req, res) => {
     let request = JSON.parse(req.body)
     if (request.email && request.password) {
