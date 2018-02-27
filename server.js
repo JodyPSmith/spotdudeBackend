@@ -22,13 +22,13 @@ const https = require('https');
 //const forceSsl = require('express-force-ssl');
 
 const key = fs.readFileSync('/etc/letsencrypt/live/jodysmith.ca/privkey.pem');
-const cert = fs.readFileSync( '/etc/letsencrypt/live/jodysmith.ca/fullchain.pem' );
-const ca = fs.readFileSync( '/etc/letsencrypt/live/jodysmith.ca/chain.pem' );
+const cert = fs.readFileSync('/etc/letsencrypt/live/jodysmith.ca/fullchain.pem');
+const ca = fs.readFileSync('/etc/letsencrypt/live/jodysmith.ca/chain.pem');
 
 const options = {
- key: key,
- cert: cert,
- ca: ca
+    key: key,
+    cert: cert,
+    ca: ca
 };
 
 
@@ -52,15 +52,15 @@ app.use(express.static('homepage'))
 app.use(bodyParser.raw({ type: '*/*' }))
 app.post('*', (req, res, next) => {
     if (req.body) {
-    try {
-        console.log("recieved from client: ", JSON.parse(req.body));
-        next();
-    } catch (err) {
-        console.log("Bad request to " + req.originalUrl)
-        res.send("Bad request to " + req.originalUrl)
-        next();
+        try {
+            console.log("recieved from client: ", JSON.parse(req.body));
+            next();
+        } catch (err) {
+            console.log("Bad request to " + req.originalUrl)
+            res.send("Bad request to " + req.originalUrl)
+            next();
+        }
     }
-}
 })
 
 
@@ -89,18 +89,18 @@ app.use((req, res, next) => {
 //// User Management
 //login endpoint, will check if there is a username and password and if there is return success, if not failure.
 app.get('/checkSession', (req, res) => {
-    
+
     console.log(req.session.id)
-    User.find({ sessionid : req.session.id}, function (err, user) {      
+    User.find({ sessionid: req.session.id }, function (err, user) {
         if (err) {
             res.send({ res: false, "err": err.errmsg });
         } else if (!user[0]) {
-            res.send({ res: false});
-        } else if (user[0].sessionid === req.session.id){
+            res.send({ res: false });
+        } else if (user[0].sessionid === req.session.id) {
             console.log(user)
-            res.send({ res : true});
+            res.send({ res: true });
         } else {
-            res.send({ res: false});
+            res.send({ res: false });
         }
     })
 })
@@ -183,26 +183,28 @@ app.post('/logout', (req, res) => {
 //// Location check to verify if users location is associated to any of their lists.
 app.post('/locCheck', (req, res) => {
     let request = JSON.parse(req.body);
+    if (request.lat && request.long) {
+        let userloc = { latitude: request.lat, longitude: request.long };
 
-    let userloc = { latitude: request.lat, longitude: request.long };
-
-    List.find({ userid: req.session.userid }, 'lat long rad', { lean: true }, function (err, list) {
-        if (err) {
-            res.send({ "res": false, "err": err.errmsg });
-        } else if (req.session.userid) {
-            // only return the items that are within the distance/radius specified for the list
-            let response = list.filter(obj => {
-                let listloc = { latitude: obj.lat, longitude: obj.long }
-                let nearby = distance.discal(listloc, userloc)
-                return obj.rad > nearby.kilometers * 1000
-            })
-            console.log("This is the locCheck response to ", req.session.userid, " ", response)
-            res.send(response);
-        } else {
-            res.send(JSON.stringify({ "res": false, "err": "list not found or not your list" }))
-        }
-    })
-
+        List.find({ userid: req.session.userid }, 'lat long rad', { lean: true }, function (err, list) {
+            if (err) {
+                res.send({ "res": false, "err": err.errmsg });
+            } else if (req.session.userid) {
+                // only return the items that are within the distance/radius specified for the list
+                let response = list.filter(obj => {
+                    let listloc = { latitude: obj.lat, longitude: obj.long }
+                    let nearby = distance.discal(listloc, userloc)
+                    return obj.rad > nearby.kilometers * 1000
+                })
+                console.log("This is the locCheck response to ", req.session.userid, " ", response)
+                res.send(response);
+            } else {
+                res.send(JSON.stringify({ "res": false, "err": "list not found or not your list" }))
+            }
+        })
+    } else {
+        res.send(JSON.stringify({ res : false, "err" : "missing lat or long" }));
+    }
 });
 
 //// Create, Read, Update and Delete user lists (CRUD).
@@ -316,7 +318,7 @@ app.put('/listUpdate', (req, res) => {
                     res.send({ "res": false, "err": err });
                 } else {
                     let update = "updated: " + request.reqKey + " to " + request.reqValue
-                    res.send({ "res": true, "updated" : update })
+                    res.send({ "res": true, "updated": update })
                 }
             })
         } else {
@@ -333,4 +335,4 @@ https.createServer(options, app).listen(443);
 
 
 // This closes the db connection on reboot or ctrlc 
-process.on('SIGINT', function() { mongoose.connection.close(function () { console.log('Mongoose disconnected on app termination'); process.exit(0); }); });
+process.on('SIGINT', function () { mongoose.connection.close(function () { console.log('Mongoose disconnected on app termination'); process.exit(0); }); });
