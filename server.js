@@ -270,11 +270,11 @@ app.post('/listCreate', (req, res) => {
 app.post('/listRead', (req, res) => {
     let request = JSON.parse(req.body);
 
-    if (req.session.userid) {
+    if (req.session.userid && request.listid) {
         List.find({ _id: request.listid }, function (err, list) {
             if (err) {
                 res.send({ "res": false, "err": err.errmsg });
-            } else if (list[0].userid === req.session.userid) {
+            } else if (request.listid && list[0].userid === req.session.userid) {
                 res.send(list);
             } else {
                 res.send(JSON.stringify({ "res": false, "err": "list not found or not your list" }))
