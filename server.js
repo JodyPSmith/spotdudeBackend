@@ -20,7 +20,7 @@ const MongoStore = require('connect-mongo')(session); //for sessions, cookies
 const fs = require('fs');
 const https = require('https');
 //const forceSsl = require('express-force-ssl');
-try {
+
 const key = fs.readFileSync('/etc/letsencrypt/live/jodysmith.ca/privkey.pem');
 const cert = fs.readFileSync( '/etc/letsencrypt/live/jodysmith.ca/fullchain.pem' );
 const ca = fs.readFileSync( '/etc/letsencrypt/live/jodysmith.ca/chain.pem' );
@@ -29,10 +29,7 @@ const options = {
  key: key,
  cert: cert,
  ca: ca
-};
-} catch (err) {
-    console.log("ssl keys not found");
-}
+
 
 // //// Database connection
 // // Open database connection, leave it open, never close it.
@@ -331,11 +328,8 @@ app.listen(5000, () => {
     console.log("listening at http://localhost:5000")
 })
 
-try {
-    https.createServer(options, app).listen(443);
-} catch (err) {
-    console.log("no ssl keys specified")
-}
+https.createServer(options, app).listen(443);
+
 
 // This closes the db connection on reboot or ctrlc 
 process.on('SIGINT', function() { mongoose.connection.close(function () { console.log('Mongoose disconnected on app termination'); process.exit(0); }); });
