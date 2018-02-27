@@ -97,7 +97,7 @@ app.get('/checkSession', (req, res) => {
         } else if (!user[0]) {
             res.send({ res: false });
         } else if (user[0].sessionid === req.session.id) {
-            console.log(user)
+            console.log("This user checked login and is true ", user.email)
             res.send({ res: true });
         } else {
             res.send({ res: false });
@@ -171,30 +171,9 @@ app.post('/signup', (req, res) => {
 
 app.post('/logout', (req, res) => {
     let request = JSON.parse(req.body);
-    //set the session userid to empty which prevents access to anything
-    req.session.userid = "";
-    req.session.save();
-    console.log("user is logged out")
-    req.session.userid === "" ?
-        res.send({ "res": true }) :
-        res.send({ "res": false });
-
-        // let request = JSON.parse(req.body);
-        // List.find({ _id: request.listid }, function (err, list) {
-        //     if (list.userid === req.session.userid) {
-        //         List.remove({ _id: request.listid }, function (err, list) {
-        //             if (err) {
-        //                 res.send({ "res": false, "err": err.errmsg });
-        //             } else if (req.session.userid) {
-        //                 res.send({ "res": "success" });
-        //             } else {
-        //                 res.send(JSON.stringify({ "res": false, "err": "list not found or not your list" }))
-        //             }
-        //         })
-        //     } else {
-        //         res.send(JSON.stringify({ "res": false, "err": "not authorized" }))
-        //     }
-        // })
+    req.session.destroy();
+    console.log("user session destroyed")
+    res.send({ "res": true });
 })
 
 
