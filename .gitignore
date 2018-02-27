@@ -2,3 +2,4 @@
 /database/config.js
 /TestFiles
 /.gitignore
+!/node_modules/connect-mongo/src
