@@ -29,6 +29,7 @@ const options = {
  key: key,
  cert: cert,
  ca: ca
+};
 
 
 // //// Database connection
