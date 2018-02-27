@@ -171,9 +171,17 @@ app.post('/signup', (req, res) => {
 
 app.post('/logout', (req, res) => {
     let request = JSON.parse(req.body);
-    req.session.destroy();
-    console.log("user session destroyed")
-    res.send({ "res": true });
+    req.session.destroy(req.session.id, function (err) {
+        if (err) {
+            console.log(err)
+            res.send({ res: false, "err": err })
+        } else {
+            console.log("user session destroyed")
+            res.send({ "res": true });
+        }
+    });
+
+
 })
 
 
@@ -202,7 +210,7 @@ app.post('/locCheck', (req, res) => {
             }
         })
     } else {
-        res.send(JSON.stringify({ res : false, "err" : "missing lat or long" }));
+        res.send(JSON.stringify({ res: false, "err": "missing lat or long" }));
     }
 });
 
