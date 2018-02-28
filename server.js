@@ -20,15 +20,15 @@ const MongoStore = require('connect-mongo')(session); //for sessions, cookies
 const fs = require('fs');
 const https = require('https');
 
-const key = fs.readFileSync('/etc/letsencrypt/live/jodysmith.ca/privkey.pem');
-const cert = fs.readFileSync('/etc/letsencrypt/live/jodysmith.ca/fullchain.pem');
-const ca = fs.readFileSync('/etc/letsencrypt/live/jodysmith.ca/chain.pem');
+// const key = fs.readFileSync('/etc/letsencrypt/live/jodysmith.ca/privkey.pem');
+// const cert = fs.readFileSync('/etc/letsencrypt/live/jodysmith.ca/fullchain.pem');
+// const ca = fs.readFileSync('/etc/letsencrypt/live/jodysmith.ca/chain.pem');
 
-const options = {
-    key: key,
-    cert: cert,
-    ca: ca
-};
+// const options = {
+//     key: key,
+//     cert: cert,
+//     ca: ca
+// };
 
 
 // //// Database connection
@@ -313,21 +313,25 @@ app.delete('/listDelete', (req, res) => {
 app.put('/listUpdate', (req, res) => {
     let request = JSON.parse(req.body);
     console.log("request is", request)
-    List.find({ _id: request.listid }, function (err, list) {
+    List.findOne({ _id: request.listid }, function (err, list) {
         console.log(list)
         //so with the data check looking to make sure that request.reqValue is true, if it's value is boolean false, it fails out.
-        console.log(request.reqKey, request.reqValue, list[0].userid, req.session.userid)
-        if (request.reqKey && request.reqValue && list[0].userid === req.session.userid) {
-            List.update({ _id: request.listid }, update = { [request.reqKey]: request.reqValue }, options = { multi: true }, function (err) {
-                if (err) {
-                    res.send({ "res": false, "err": err });
-                } else {
-                    let update = "updated: " + request.reqKey + " to " + request.reqValue
-                    res.send({ "res": true, "updated": update })
-                }
-            })
+        //console.log(request.reqKey, request.reqValue, list.userid, req.session.userid)
+        if (list) {
+            if (request.reqKey && request.reqValue && list.userid === req.session.userid) {
+                List.update({ _id: request.listid }, { [request.reqKey]: request.reqValue }, { multi: false }, function (err, raw) {
+                    if (err) {
+                        res.send({ "res": false, "err": err, "raw": raw });
+                    } else {
+                        let update = "updated: " + request.reqKey + " to " + request.reqValue
+                        res.send({ "res": true, "updated": update })
+                    }
+                })
+            } else {
+                res.send({ "res": false, "err": "not Authorized" })
+            }
         } else {
-            res.send({ "res": false, "err": "not Authorized" })
+            res.send({ "res": false, "err": "list not found" })
         }
     })
 })
@@ -336,7 +340,7 @@ app.listen(5000, () => {
     console.log("listening at http://localhost:5000")
 })
 
-https.createServer(options, app).listen(443);
+// https.createServer(options, app).listen(443);
 
 
 // This closes the db connection on reboot or ctrlc 
