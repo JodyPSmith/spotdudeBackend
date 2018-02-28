@@ -20,15 +20,15 @@ const MongoStore = require('connect-mongo')(session); //for sessions, cookies
 const fs = require('fs');
 const https = require('https');
 
-// const key = fs.readFileSync('/etc/letsencrypt/live/jodysmith.ca/privkey.pem');
-// const cert = fs.readFileSync('/etc/letsencrypt/live/jodysmith.ca/fullchain.pem');
-// const ca = fs.readFileSync('/etc/letsencrypt/live/jodysmith.ca/chain.pem');
+const key = fs.readFileSync('/etc/letsencrypt/live/jodysmith.ca/privkey.pem');
+const cert = fs.readFileSync('/etc/letsencrypt/live/jodysmith.ca/fullchain.pem');
+const ca = fs.readFileSync('/etc/letsencrypt/live/jodysmith.ca/chain.pem');
 
-// const options = {
-//     key: key,
-//     cert: cert,
-//     ca: ca
-// };
+const options = {
+    key: key,
+    cert: cert,
+    ca: ca
+};
 
 
 // //// Database connection
@@ -340,7 +340,7 @@ app.listen(5000, () => {
     console.log("listening at http://localhost:5000")
 })
 
-// https.createServer(options, app).listen(443);
+https.createServer(options, app).listen(443);
 
 
 // This closes the db connection on reboot or ctrlc 
