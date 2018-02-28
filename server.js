@@ -19,17 +19,16 @@ const MongoStore = require('connect-mongo')(session); //for sessions, cookies
 //// Handle SSL connection and specify cert location
 const fs = require('fs');
 const https = require('https');
-//const forceSsl = require('express-force-ssl');
 
-// const key = fs.readFileSync('/etc/letsencrypt/live/jodysmith.ca/privkey.pem');
-// const cert = fs.readFileSync('/etc/letsencrypt/live/jodysmith.ca/fullchain.pem');
-// const ca = fs.readFileSync('/etc/letsencrypt/live/jodysmith.ca/chain.pem');
+const key = fs.readFileSync('/etc/letsencrypt/live/jodysmith.ca/privkey.pem');
+const cert = fs.readFileSync('/etc/letsencrypt/live/jodysmith.ca/fullchain.pem');
+const ca = fs.readFileSync('/etc/letsencrypt/live/jodysmith.ca/chain.pem');
 
-// const options = {
-//     key: key,
-//     cert: cert,
-//     ca: ca
-// };
+const options = {
+    key: key,
+    cert: cert,
+    ca: ca
+};
 
 
 // //// Database connection
@@ -316,6 +315,7 @@ app.put('/listUpdate', (req, res) => {
     console.log("request is", request)
     List.find({ _id: request.listid }, function (err, list) {
         console.log(list)
+        //so with the data check looking to make sure that request.reqValue is true, if it's value is boolean false, it fails out.
         console.log(request.reqKey, request.reqValue, list[0].userid, req.session.userid)
         if (request.reqKey && request.reqValue && list[0].userid === req.session.userid) {
             List.update({ _id: request.listid }, update = { [request.reqKey]: request.reqValue }, options = { multi: true }, function (err) {
@@ -336,7 +336,7 @@ app.listen(5000, () => {
     console.log("listening at http://localhost:5000")
 })
 
-// https.createServer(options, app).listen(443);
+https.createServer(options, app).listen(443);
 
 
 // This closes the db connection on reboot or ctrlc 
